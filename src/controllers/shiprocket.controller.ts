@@ -54,21 +54,77 @@ const createShiprocketOrder = async (req: Request, res: Response, next: NextFunc
     }
 
 
-
-    const response = await axios.post(
-        "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
-        orderData,
-        {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${shipToken}`,
+    try {
+        const response = await axios.post(
+            "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
+            orderData,
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${shipToken}`,
+                }
             }
-        }
-    );
+        );
+        console.log(response.data);
 
-    res.status(HttpStatusCodes.CREATED).json({ success: true, data: response.data });
+
+        const ShipRocketOrderId = response.data.order_id;
+        await prisma.$transaction([
+            prisma.order.update({
+                where: {
+                    id: orderData.order_id
+                },
+                data: {
+                    ShipRocketOrderId: ShipRocketOrderId
+                }
+            })
+        ]);
+
+        res.status(HttpStatusCodes.CREATED).json({ success: true, data: response.data });
+
+    } catch (error) {
+        console.error("Shiprocket Create Order Error:", error);
+    }
+
 };
 
+const cancelShiprocketOrder = async (req: Request, res: Response, next: NextFunction) => {
+    const shipToken = await getShiprocketToken();
+    if (!shipToken) {
+        throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
+    }
+
+    const orderId = req.body.orderId;
+
+    try {
+
+        const orderData = await prisma.order.findUnique({
+            where: {
+                id: orderId
+            }
+        });
+
+        console.log(orderData);
+
+        const response = await axios.post(
+            "https://apiv2.shiprocket.in/v1/external/orders/cancel",
+            { ids: [orderData?.ShipRocketOrderId] },
+            {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${shipToken}`,
+                }
+            }
+        );
+
+        console.log(response.data);
+
+        res.status(HttpStatusCodes.CREATED).json({ success: true, data: response.data });
+    } catch (error) {
+        console.error("Shiprocket Cancel Order Error:", error);
+    }
+};
 export default {
     createShiprocketOrder,
+    cancelShiprocketOrder
 };

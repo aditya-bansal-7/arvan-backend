@@ -175,6 +175,7 @@ model Order {
   items       OrderItem[] // Join table for order items
   total       Float
   status      OrderStatus
+  ShipRocketOrderId Int?
   awb         String?
   DeliveryStatus String?       @default("PENDING")
   etd         String?

@@ -133,14 +133,6 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing order ID");
     }
   
-    // const order = await prisma.order.findUnique({
-    //   where: req.user.role === "ADMIN" ? { id } : { id, userId: req.user.id }, // Admin can fetch any order, user can only fetch their own
-    //   include: { items: true },
-    // });
-  
-    // if (!order) {
-    //   throw new RouteError(HttpStatusCodes.NOT_FOUND, "Order not found");
-    // }
     const myOrder = await prisma.order.findUnique({
       where: { id },
       include: { items: true, address: true },
@@ -150,7 +142,7 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
       status: myOrder?.DeliveryStatus,
       message: myOrder?.etd ? `Expected Delivery On ${myOrder?.etd.slice(0,10)}` : "Order is being processed",
       color: "bg-yellow-500",
-      actions: myOrder?.status === "COMPLETED" ? [] : ["Cancel Order"],
+      actions: (myOrder?.status === "COMPLETED" || myOrder?.status === "CANCELLED" )? [] : ["Cancel Order"],
       awb: myOrder?.awb,
       products: myOrder?.items.map((item) => ({
         id: item.productId,
@@ -164,7 +156,7 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
       totalPrice: myOrder?.total,
       orderDate: myOrder?.createdAt.toISOString().slice(0, 10),
       orderId: id,
-      paymentMethod: myOrder?.paid ? "Cash on Delivery" : "RAZORPAY",
+      paymentMethod: !myOrder?.paid ? "Cash on Delivery" : "RAZORPAY",
       shippingAddress : {
         name : myOrder?.address?.name,
         street : myOrder?.address?.street,
