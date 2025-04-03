@@ -178,6 +178,7 @@ model Order {
   awb         String?
   DeliveryStatus String?       @default("PENDING")
   etd         String?
+  deliveredAt  DateTime?
   paid         Boolean         @default(false)
   fulfillment OrderFulfillment
   addressId   String
