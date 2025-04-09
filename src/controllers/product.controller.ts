@@ -7,6 +7,7 @@ import {
   updateStockSchema,
   addColorSchema,
   addSizesSchema,
+  updateColorSchema,
 } from "../types/validations/product.js";
 
 import { prisma } from "../utils/prismaclient.js";
@@ -118,44 +119,35 @@ const addSizes = async (req: Request, res: Response, next: NextFunction) => {
 /** ✅ Update a color */
 const updateColor = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
-  const parsed = addColorSchema.safeParse(req.body);
+  const parsed = updateColorSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new ValidationErr(parsed.error.errors);
   }
-  const { color, assets, sizes } = parsed.data;
+  const { name, assets } = parsed.data;
 
   // First, delete all existing assets and sizes for this color
-  await prisma.$transaction([
+  const productColor = await prisma.$transaction([
     prisma.productAsset.deleteMany({
       where: { colorId: id }
     }),
-    prisma.productVariant.deleteMany({
-      where: { colorId: id }
+     prisma.productColor.update({
+      where: { id },
+      data: {
+        color:name,
+        assets: {
+          create:
+            assets?.map((asset: { url: string; type: AssetType }) => ({
+              asset_url: asset.url,
+              type: asset.type,
+            })) || [],
+        }
+      },
+      include: { assets: true },
     })
   ]);
 
   // Then update the color with new assets and sizes
-  const productColor = await prisma.productColor.update({
-    where: { id },
-    data: {
-      color,
-      assets: {
-        create:
-          assets?.map((asset: { url: string; type: AssetType }) => ({
-            asset_url: asset.url,
-            type: asset.type,
-          })) || [],
-      },
-      sizes: {
-        create:
-          sizes?.map((asset: { size: VariantsValues; stock: number }) => ({
-            size: asset.size,
-            stock: asset.stock,
-          })) || [],
-      }
-    },
-    include: { assets: true, sizes: true },
-  });
+  
 
   res.status(HttpStatusCodes.OK).json({ success: true, productColor });
 };
