@@ -15,7 +15,7 @@ export async function sendOtp(otp: string, recipientNo: string) {
   recipientNo = recipientNo;
   try {
     const response = await whatsappClient.get(`/${ENV.WHATSAPP_BUISSNESS_ID}/message_templates`);
-    console.log("Templates Retrieved:", JSON.stringify(response.data, null, 2));
+    // console.log("Templates Retrieved:", JSON.stringify(response.data, null, 2));
     const components = [
       {
         type: "body",
@@ -46,7 +46,7 @@ export async function sendOtp(otp: string, recipientNo: string) {
       type: "template",
       template: {
         name: "auth_verify",
-        language: { code: "en_US" },
+        language: { code: "en" },
         components: components,
       },
     };
@@ -60,6 +60,8 @@ export async function sendOtp(otp: string, recipientNo: string) {
     console.log("Message Sent:", result.data);
     return result.data;
   } catch (error: any) {
+
+    console.error(" shs" ,error.response)
  
     console.error("Error in sendOtp:", JSON.stringify(error, null, 5));
     

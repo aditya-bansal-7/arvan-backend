@@ -37,10 +37,10 @@ if (ENV.NODE_ENV === NodeEnvs.Dev) {
 
 // WebHook
 import webhookRoutes from './routes/webhook.routes.js'
-
+import whatsappRoutes from './routes/whatsapp.routes.js'
 app.use("/api/webhook", webhookRoutes);
 
-
+app.use("/api/whatsapp", whatsappRoutes);
 
 //CORS
 const whitelist = [ENV.FRONTENDURL];
