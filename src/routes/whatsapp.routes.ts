@@ -2,7 +2,7 @@ import express from 'express';
 
 const router = express.Router();
 
-const VERIFY_TOKEN = 'testwebhook';
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 // GET /webhook - For verification
 router.get('/', (req, res) => {
