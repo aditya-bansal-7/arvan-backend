@@ -50,53 +50,95 @@ const getBesSellers = async (
   res: Response,
   next: NextFunction
 ) => {
-  const limit = parseInt(req.query.limit as string) || 5;
+  const limit = parseInt(req.query.limit as string) || 10;
 
+  // Step 1: Group by variantId (bestsellers)
   const topProducts = await prisma.orderItem.groupBy({
     by: ["productVariantId"],
     _sum: {
       quantity: true,
-      priceAtOrder: true,
     },
   });
-  // Sort and limit
-  const limitedProducts = topProducts
-    .sort((a, b) => (b._sum.quantity || 0) - (a._sum.quantity || 0))
-    .slice(0, limit);
 
-  // Fetch product variants and their products in a single query
-  const productVariants = await prisma.productVariant.findMany({
+  // Step 2: Sort by quantity sold
+  const sortedVariants = topProducts
+    .sort((a, b) => (b._sum.quantity || 0) - (a._sum.quantity || 0));
+
+  // Step 3: Fetch variant details including product
+  const topVariants = await prisma.productVariant.findMany({
     where: {
-      id: { in: limitedProducts.map((item) => item.productVariantId) },
+      id: {
+        in: sortedVariants.map((v) => v.productVariantId),
+      },
     },
     include: {
       color: {
         include: {
           product: {
-            include: {
-              category: true,
-            },
+            include: { category: true },
           },
-          assets: {
-            take: 1,
-          },
+          assets: { take: 1 },
         },
       },
     },
   });
-  const products = productVariants.map((variant) => {
-    return {
-      productid: variant.color?.product?.id || "",
-      img: variant.color.assets[0].asset_url, 
-      name: variant.color?.product?.name ,
-      price: variant.color.product.price,
-      category: variant.color?.product.category.name , // Assuming category field exists
-      discount: variant.color.product.discountPrice, // Assuming discount field exists
-    };
-  });
+
+  // Step 4: Keep only one variant per product
+  const uniqueProductsMap = new Map();
+  for (const variant of topVariants) {
+    const product = variant.color?.product;
+    if (product && !uniqueProductsMap.has(product.id)) {
+      uniqueProductsMap.set(product.id, variant);
+    }
+    if (uniqueProductsMap.size >= limit) break;
+  }
+
+  // Step 5: If not enough unique products, fetch more
+  if (uniqueProductsMap.size < limit) {
+    const existingProductIds = Array.from(uniqueProductsMap.keys());
+
+    const additionalVariants = await prisma.productVariant.findMany({
+      where: {
+        color: {
+          product: {
+            id: { notIn: existingProductIds },
+          },
+        },
+      },
+      take: limit - uniqueProductsMap.size,
+      include: {
+        color: {
+          include: {
+            product: {
+              include: { category: true },
+            },
+            assets: { take: 1 },
+          },
+        },
+      },
+    });
+
+    for (const variant of additionalVariants) {
+      const product = variant.color?.product;
+      if (product && !uniqueProductsMap.has(product.id)) {
+        uniqueProductsMap.set(product.id, variant);
+      }
+    }
+  }
+
+  // Step 6: Format result
+  const products = Array.from(uniqueProductsMap.values()).map((variant) => ({
+    productid: variant.color?.product?.id || "",
+    img: variant.color.assets[0]?.asset_url || "",
+    name: variant.color?.product?.name || "",
+    price: variant.color?.product?.price || 0,
+    category: variant.color?.product?.category?.name || "",
+    discount: variant.color?.product?.discountPrice || 0,
+  }));
 
   res.status(HttpStatusCodes.OK).json({ success: true, products });
 };
+
 
 const newArrivals = async (req: Request, res: Response, next: NextFunction) => {
   const limit = parseInt(req.query.limit as string) || 5;
