@@ -38,9 +38,22 @@ if (ENV.NODE_ENV === NodeEnvs.Dev) {
 // WebHook
 import webhookRoutes from './routes/webhook.routes.js'
 import whatsappRoutes from './routes/whatsapp.routes.js'
+
+const healthCheck = express.Router();
+
+healthCheck.get("/", (req: Request, res: Response) => {
+  res.status(HttpStatusCodes.OK).json({
+    success: true,
+    message: "Server is running",
+  });
+});
+
+
 app.use("/api/webhook", webhookRoutes);
 
 app.use("/api/whatsapp", whatsappRoutes);
+
+app.use("/api/health", healthCheck);
 
 //CORS
 const whitelist = [ENV.FRONTENDURL];
