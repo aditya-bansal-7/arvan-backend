@@ -17,9 +17,6 @@ import { prisma } from "../utils/prismaclient.js";
 
 
 const addProduct = async (req: Request, res: Response, next: NextFunction) => {
-  // if(!req.user && req?.user?.role !== "ADMIN"){
-  //   throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  // }
   const parsed = addProductSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new ValidationErr(parsed.error.errors);
@@ -190,9 +187,6 @@ const deleteAsset = async (req: Request, res: Response, next: NextFunction) => {
 
 /** ✅ Get a product with colors and variants */
 const getProduct = async (req: Request, res: Response, next: NextFunction) => {
-  // if(!req.user && req?.user?.role !== "ADMIN"){
-  //   throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  // }
   const { id } = req.params;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing product id");
@@ -331,9 +325,6 @@ const updateProduct = async (
 };
 
 const updateStatus = async (req: Request, res: Response, next: NextFunction) => {
-  // if(!req.user && req?.user?.role !== "ADMIN"){
-  //   throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  // }
   const { id } = req.params; 
   const { status } = req.body;
   if (!id) {
@@ -352,9 +343,6 @@ const updateStatus = async (req: Request, res: Response, next: NextFunction) => 
 
 
 const deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
-  // if(!req.user && req?.user?.role !== "ADMIN"){
-  //   throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  // }
   const { id } = req.params;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing product id");
@@ -371,9 +359,6 @@ const deleteProduct = async (req: Request, res: Response, next: NextFunction) =>
 
 /** ✅ Delete a product color */
  const deleteColor = async (req: Request, res: Response, next: NextFunction) => {
-  if(!req.user && req?.user?.role !== "ADMIN"){
-    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  }
   const { id } = req.params;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing color id");
@@ -390,9 +375,6 @@ const deleteProduct = async (req: Request, res: Response, next: NextFunction) =>
 
 /** ✅ Delete a product variant (size) */
  const deleteVariant = async (req: Request, res: Response, next: NextFunction) => {
-  if(!req.user && req?.user?.role !== "ADMIN"){
-    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  }
   const { id } = req.params;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing variant id");

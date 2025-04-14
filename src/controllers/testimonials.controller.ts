@@ -65,9 +65,7 @@ interface TestimonialInput {
     }
   };
   const updateTestimonial = async (req: Request, res: Response, next: NextFunction) => {
-    // if (!req.user && req?.user?.role !== "ADMIN") {
-    //   throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-    // }
+    
     
     const { id } = req.params;
     
@@ -90,9 +88,7 @@ interface TestimonialInput {
   };
   
   const deleteTestimonial = async (req: Request, res: Response, next: NextFunction) => {
-    // if (!req.user && req?.user?.role !== "ADMIN") {
-    //   throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-    // }
+
     
     const { id } = req.params;
     

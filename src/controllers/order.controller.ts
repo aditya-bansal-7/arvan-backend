@@ -180,9 +180,6 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
 
 /** ✅ Update order status */
 const updateOrderStatus = async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user || req.user.role !== "ADMIN") {
-    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  }
 
   const { id } = req.params;
   if (!id) {
@@ -204,9 +201,7 @@ const updateOrderStatus = async (req: Request, res: Response, next: NextFunction
 
 /** ✅ Update fulfillment status */
 const updateFulfillment = async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user || req.user.role !== "ADMIN") {
-    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  }
+
 
   const { id } = req.params;
   if (!id) {
@@ -228,9 +223,6 @@ const updateFulfillment = async (req: Request, res: Response, next: NextFunction
 
 /** ✅ Delete an order */
 const deleteOrder = async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user || req.user.role !== "ADMIN") {
-    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-  }
 
   const { id } = req.params;
   if (!id) {

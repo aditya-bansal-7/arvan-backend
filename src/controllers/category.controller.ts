@@ -28,10 +28,6 @@ const addCategory = async (req: Request, res: Response, next: NextFunction) => {
 
 /** ✅ Update a category */
 const updateCategory = async (req: Request, res: Response, next: NextFunction) => {
-
-    // if (!req.user && req?.user?.role !== "ADMIN") {
-    //     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-    // }
     const parsed = updateCategorySchema.safeParse(req.body);
 
     if (!parsed.success) {
@@ -56,10 +52,6 @@ const updateCategory = async (req: Request, res: Response, next: NextFunction) =
 
 /** ✅ Delete a category */
 const deleteCategory = async (req: Request, res: Response, next: NextFunction) => {
-
-    // if (!req.user && req?.user?.role !== "ADMIN") {
-    //     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-    // }
     const { id } = req.params;
     if (!id) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing category id");
