@@ -27,11 +27,16 @@ router.post("/", upload.single('file'), async (req, res, next) => {
     const uploadResult = await new Promise<cloudinary.UploadApiResponse>((resolve, reject) => {
         const uploadStream = cloudinary.v2.uploader.upload_stream(
             { 
-                resource_type: "auto", 
-                folder: "uploads", 
+                resource_type: "auto",
+                folder: "uploads",
                 timeout: 600000,
-                chunk_size: 6000000 // 6MB chunks for better upload handling
-            },
+                chunk_size: 6000000,
+                quality: "100",           // 100% quality, no compression
+                fetch_format: "auto",     // Automatically selects best format
+                use_filename: true,       // Optional: keeps original filename
+                unique_filename: false,   // Optional: avoids adding random characters
+                overwrite: false          // Optional: don’t overwrite files with same name
+              },
             (error, result) => {
                 if (error) {
                     console.error("Cloudinary Upload Error:", error);
@@ -57,11 +62,16 @@ router.post("/multiple", upload.array('files', 10), async (req, res, next) => {
         return new Promise<cloudinary.UploadApiResponse>((resolve, reject) => {
             const uploadStream = cloudinary.v2.uploader.upload_stream(
                 { 
-                    resource_type: "auto", 
-                    folder: "uploads", 
+                    resource_type: "auto",
+                    folder: "uploads",
                     timeout: 600000,
-                    chunk_size: 6000000 // 6MB chunks for better upload handling
-                },
+                    chunk_size: 6000000,
+                    quality: "100",           // 100% quality, no compression
+                    fetch_format: "auto",     // Automatically selects best format
+                    use_filename: true,       // Optional: keeps original filename
+                    unique_filename: false,   // Optional: avoids adding random characters
+                    overwrite: false          // Optional: don’t overwrite files with same name
+                  },
                 (error, result) => {
                     if (error) {
                         console.error("Cloudinary Upload Error:", error);
@@ -77,7 +87,10 @@ router.post("/multiple", upload.array('files', 10), async (req, res, next) => {
     });
 
     const uploadResults = await Promise.all(uploadPromises);
+
     const urls = uploadResults.map(result => result.secure_url);
+
+    console.log("Upload Results:", urls);
 
     res.status(HttpStatusCodes.OK).json({ urls });
 });

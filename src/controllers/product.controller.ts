@@ -221,47 +221,74 @@ const getAllProduct = async (
   const limit = parseInt(req.query.limit as string) || 10;
   const search = (req.query.search as string) || '';
   const status = req.query.status as "PUBLISHED" | "DRAFT" | undefined;
-  
+  const sortBy = (req.query.sortBy as string) || 'createdAt';
+  const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
+  const category = req.query.category as string | undefined;
+  const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice as string) : undefined;
+  const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice as string) : undefined;
+  const rating = req.query.rating ? parseFloat(req.query.rating as string) : undefined;
+
   const skip = (page - 1) * limit;
-  
-  const totalCount = await prisma.product.count({
-    where: {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ],
-      ...(status && { status })
-    }
-  });
-  
-  const totalPages = Math.ceil(totalCount / limit);
-  
+
+  const whereClause: any = {
+    OR: [
+      { name: { contains: search, mode: 'insensitive' } },
+      { description: { contains: search, mode: 'insensitive' } }
+    ],
+    ...(status && { status }),
+    ...(category && { category_id: category }),
+    ...(minPrice !== undefined && { price: { gte: minPrice } }),
+    ...(maxPrice !== undefined && { price: { ...(minPrice ? {} : { gte: 0 }), lte: maxPrice } }),
+  };
+
   const products = await prisma.product.findMany({
     where: {
-      OR: [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } }
-      ],
-      ...(status && { status })
+      ...whereClause,
+      ...(rating !== undefined && {
+        ProductRating: {
+          some: {
+            rating: { gte: rating },
+          },
+        },
+      }),
     },
     include: {
       assets: true,
     },
     skip,
     take: limit,
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
   });
-  
-  res.status(HttpStatusCodes.OK).json({ 
-    success: true, 
+
+  const totalCount = await prisma.product.count({
+    where: {
+      ...whereClause,
+      ...(rating !== undefined && {
+        ProductRating: {
+          some: {
+            rating: { gte: rating },
+          },
+        },
+      }),
+    }
+  });
+
+  const totalPages = Math.ceil(totalCount / limit);
+
+  res.status(200).json({
+    success: true,
     products,
     pagination: {
       totalPages,
       currentPage: page,
       totalItems: totalCount,
-      itemsPerPage: limit
+      itemsPerPage: limit,
     }
   });
 };
+
 
 
 
