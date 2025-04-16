@@ -138,11 +138,23 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
       include: { items: true, address: true },
     });
 
+    const actions = [];
+
+    if (myOrder?.status === "PENDING") {
+      actions.push("Cancel Order");
+    }
+
+    if (myOrder?.deliveredAt && myOrder.deliveredAt > new Date(Date.now() - (1000 * 60 * 60 * 24 * 7)) && myOrder.isReturned === false) {
+      actions.push("Return Order");
+    }
+
     const order = {
       status: myOrder?.DeliveryStatus,
       message: myOrder?.etd ? `Expected Delivery On ${myOrder?.etd.slice(0,10)}` : "Order is being processed",
       color: "bg-yellow-500",
-      actions: (myOrder?.status === "COMPLETED" || myOrder?.status === "CANCELLED" )? [] : ["Cancel Order"],
+      actions: actions,
+      isReturned: myOrder?.isReturned,
+      returnDate: myOrder?.returnedAt ? myOrder?.returnedAt.toISOString().slice(0, 10) : null,
       awb: myOrder?.awb,
       products: myOrder?.items.map((item) => ({
         id: item.productId,
@@ -153,6 +165,7 @@ const getOrderById = async (req: Request, res: Response, next: NextFunction) => 
         price: item.priceAtOrder,
         image: item.productImage,
       })),
+      fulfillment: myOrder?.fulfillment,
       totalPrice: myOrder?.total,
       orderDate: myOrder?.createdAt.toISOString().slice(0, 10),
       orderId: id,

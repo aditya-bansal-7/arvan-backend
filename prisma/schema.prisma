@@ -182,6 +182,10 @@ model Order {
   deliveredAt  DateTime?
   paid         Boolean         @default(false)
   fulfillment OrderFulfillment
+  isReturned  Boolean         @default(false)
+  returnedAt   DateTime?
+  returnReason String?
+  returnAdditionalInfo String?
   addressId   String
   address     Address          @relation(fields: [addressId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -213,6 +217,7 @@ enum OrderFulfillment {
   PENDING // Added for initial state
   SHIPPED
   DELIVERED
+  RETURNING
   RETURNED
 }
 

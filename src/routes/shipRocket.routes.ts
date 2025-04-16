@@ -7,4 +7,6 @@ router.post("/", shipRocketController.createShiprocketOrder);
 
 router.post("/cancel", shipRocketController.cancelShiprocketOrder);
 
+router.post("/return", shipRocketController.returnShiprocketOrder);
+
 export default router;
