@@ -312,3 +312,10 @@ model ShiprocketToken {
   token  String
   createdAt DateTime @default(now())
 }
+
+model Upoads {
+  id        String   @id @default(cuid())
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
