@@ -27,11 +27,12 @@ const SyncProducts = async (req: Request, res: Response, next: NextFunction) => 
             if (p.offerId) {
                 merchantMap[p.offerId] = p;
             }
-        });       
-
-        console.log(merchantMap);
-         // 2. Fetch DB products
+        });
+        // 2. Fetch DB products
         const dbProducts = await prisma.product.findMany({
+            where: {
+                status: "PUBLISHED"
+            },
             include: {
                 category: true,
                 assets: true,
@@ -100,13 +101,25 @@ const SyncProducts = async (req: Request, res: Response, next: NextFunction) => 
                 },
                 brand: p.material,
                 productTypes: [p.category.name],
+                shipping: [{
+                    country: 'IN',
+                    service: 'Standard shipping',
+                    price: {
+                        value: '0.00',
+                        currency: 'INR'
+                    }
+                }],
             };
 
             await content.products.insert({ merchantId, requestBody: newProduct });
         }
 
         for (const id of toUpdate) {
-            const p = dbMap[id];
+            console.log(id);
+            const productId = id.split(':').pop();
+            console.log(productId);
+            const p = dbMap[productId];
+            console.log(p);
             const image = p.assets[0]?.asset_url || 'https://yourstore.com/default.jpg';
 
             const updatedProduct = {
@@ -114,8 +127,6 @@ const SyncProducts = async (req: Request, res: Response, next: NextFunction) => 
                 description: p.description,
                 link: `https://www.thearvan.com/product/${p.id}`,
                 imageLink: image,
-                contentLanguage: 'en',
-                channel: 'online',
                 availability: 'in stock',
                 condition: 'new',
                 price: {
