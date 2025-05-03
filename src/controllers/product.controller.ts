@@ -21,7 +21,7 @@ const addProduct = async (req: Request, res: Response, next: NextFunction) => {
   if (!parsed.success) {
     throw new ValidationErr(parsed.error.errors);
   }
-  const { name, description, price,discountPrice, category_id, assets, material, status } =
+  const { name, description, price, discountPrice, category_id, assets, material, status } =
     parsed.data;
 
   const product = await prisma.product.create({
@@ -40,7 +40,7 @@ const addProduct = async (req: Request, res: Response, next: NextFunction) => {
             type: asset.type,
           })) || [],
       },
-    
+
     },
     include: { assets: true },
   });
@@ -55,7 +55,7 @@ const addColor = async (req: Request, res: Response, next: NextFunction) => {
   if (!parsed.success) {
     throw new ValidationErr(parsed.error.errors);
   }
-  const { productId, color, assets,sizes } = parsed.data;
+  const { productId, color, assets, sizes } = parsed.data;
 
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) {
@@ -73,12 +73,12 @@ const addColor = async (req: Request, res: Response, next: NextFunction) => {
             type: asset.type,
           })) || [],
       },
-      sizes:{
+      sizes: {
         create:
-        sizes?.map((asset: { size: VariantsValues; stock: number }) => ({
-          size: asset.size,
-          stock: asset.stock,
-        })) || [],
+          sizes?.map((asset: { size: VariantsValues; stock: number }) => ({
+            size: asset.size,
+            stock: asset.stock,
+          })) || [],
       }
     },
     include: { assets: true },
@@ -127,10 +127,10 @@ const updateColor = async (req: Request, res: Response, next: NextFunction) => {
     prisma.productAsset.deleteMany({
       where: { colorId: id }
     }),
-     prisma.productColor.update({
+    prisma.productColor.update({
       where: { id },
       data: {
-        color:name,
+        color: name,
         assets: {
           create:
             assets?.map((asset: { url: string; type: AssetType }) => ({
@@ -144,14 +144,14 @@ const updateColor = async (req: Request, res: Response, next: NextFunction) => {
   ]);
 
   // Then update the color with new assets and sizes
-  
+
 
   res.status(HttpStatusCodes.OK).json({ success: true, productColor });
 };
 
 /** ✅ Update stock for a specific size */
 const updateStock = async (req: Request, res: Response, next: NextFunction) => {
-  
+
   const parsed = updateStockSchema.safeParse(req.body);
   if (!parsed.success) {
     throw new ValidationErr(parsed.error.errors);
@@ -168,7 +168,7 @@ const updateStock = async (req: Request, res: Response, next: NextFunction) => {
 
 /** ✅ Delete an asset */
 const deleteAsset = async (req: Request, res: Response, next: NextFunction) => {
-  
+
   const { id } = req.params;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing asset id");
@@ -219,7 +219,7 @@ const getAllProduct = async (
 ) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
-  const search = (req.query.search as string) || '';
+  const search = req.query.search as string;
   const status = req.query.status as "PUBLISHED" | "DRAFT" | undefined;
   const sortBy = (req.query.sortBy as string) || 'createdAt';
   const sortOrder = (req.query.sortOrder as 'asc' | 'desc') || 'desc';
@@ -231,49 +231,41 @@ const getAllProduct = async (
   const skip = (page - 1) * limit;
 
   const whereClause: any = {
-    OR: [
-      { name: { contains: search, mode: 'insensitive' } },
-      { description: { contains: search, mode: 'insensitive' } }
-    ],
-    ...(status && { status }),
+    ...(search && {
+      OR: [
+        { name: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } }
+      ]
+    }), ...(status && { status }),
     ...(category && { category_id: category }),
     ...(minPrice !== undefined && { price: { gte: minPrice } }),
-    ...(maxPrice !== undefined && { price: { ...(minPrice ? {} : { gte: 0 }), lte: maxPrice } }),
+    ...(maxPrice !== undefined && {
+      price: {
+        ...(minPrice !== undefined ? { gte: minPrice } : { gte: 0 }),
+        lte: maxPrice
+      }
+    }),
+    ...(rating !== undefined && {
+      avgRating: { gte: rating }
+    }),
   };
 
-  const products = await prisma.product.findMany({
-    where: {
-      ...whereClause,
-      ...(rating !== undefined && {
-        ProductRating: {
-          some: {
-            rating: { gte: rating },
-          },
-        },
-      }),
-    },
-    include: {
-      assets: true,
-    },
-    skip,
-    take: limit,
-    orderBy: {
-      [sortBy]: sortOrder,
-    },
-  });
-
-  const totalCount = await prisma.product.count({
-    where: {
-      ...whereClause,
-      ...(rating !== undefined && {
-        ProductRating: {
-          some: {
-            rating: { gte: rating },
-          },
-        },
-      }),
-    }
-  });
+  const [products, totalCount] = await Promise.all([
+    prisma.product.findMany({
+      where: whereClause,
+      include: {
+        assets: true,
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+    }),
+    prisma.product.count({
+      where: whereClause,
+    }),
+  ]);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -285,12 +277,9 @@ const getAllProduct = async (
       currentPage: page,
       totalItems: totalCount,
       itemsPerPage: limit,
-    }
+    },
   });
 };
-
-
-
 
 const updateProduct = async (
   req: Request,
@@ -318,9 +307,9 @@ const updateProduct = async (
   // First, delete existing assets if new ones are provided
   if (assets && assets.length > 0) {
     await prisma.productAsset.deleteMany({
-      where: { 
+      where: {
         productId: id,
-        colorId: null 
+        colorId: null
       }
     });
   }
@@ -352,7 +341,7 @@ const updateProduct = async (
 };
 
 const updateStatus = async (req: Request, res: Response, next: NextFunction) => {
-  const { id } = req.params; 
+  const { id } = req.params;
   const { status } = req.body;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing product id");
@@ -385,7 +374,7 @@ const deleteProduct = async (req: Request, res: Response, next: NextFunction) =>
 };
 
 /** ✅ Delete a product color */
- const deleteColor = async (req: Request, res: Response, next: NextFunction) => {
+const deleteColor = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing color id");
@@ -401,7 +390,7 @@ const deleteProduct = async (req: Request, res: Response, next: NextFunction) =>
 };
 
 /** ✅ Delete a product variant (size) */
- const deleteVariant = async (req: Request, res: Response, next: NextFunction) => {
+const deleteVariant = async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
   if (!id) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing variant id");
@@ -418,39 +407,39 @@ const deleteProduct = async (req: Request, res: Response, next: NextFunction) =>
 
 const getOverview = async (req: Request, res: Response, next: NextFunction) => {
   try {
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      const [totalProducts, totalRevenue, lastMonthRevenue, totalUsers] = await Promise.all([
-          prisma.product.count({ where: { status: "PUBLISHED" } }),
-          prisma.order.aggregate({ _sum: { total: true }, where: { status: 'COMPLETED' } }),  
-          prisma.order.aggregate({ 
-              _sum: { total: true }, 
-              where: { 
-                  createdAt: { gte: oneMonthAgo },
-                  status: 'COMPLETED'
-              }
-          }),
-          prisma.user.count() 
-          ]);
+    const [totalProducts, totalRevenue, lastMonthRevenue, totalUsers] = await Promise.all([
+      prisma.product.count({ where: { status: "PUBLISHED" } }),
+      prisma.order.aggregate({ _sum: { total: true }, where: { status: 'COMPLETED' } }),
+      prisma.order.aggregate({
+        _sum: { total: true },
+        where: {
+          createdAt: { gte: oneMonthAgo },
+          status: 'COMPLETED'
+        }
+      }),
+      prisma.user.count()
+    ]);
 
-      const totalRevenueValue = totalRevenue._sum.total || 0;
-      const lastMonthRevenueValue = lastMonthRevenue._sum.total || 0;
+    const totalRevenueValue = totalRevenue._sum.total || 0;
+    const lastMonthRevenueValue = lastMonthRevenue._sum.total || 0;
 
-      let growthPercentage = "0%";
-      if (totalRevenueValue > 0) {
-          growthPercentage = ((lastMonthRevenueValue / totalRevenueValue) * 100).toFixed(1) + "%";
-      }
+    let growthPercentage = "0%";
+    if (totalRevenueValue > 0) {
+      growthPercentage = ((lastMonthRevenueValue / totalRevenueValue) * 100).toFixed(1) + "%";
+    }
 
-      res.status(200).json({
-          totalProducts,
-          revenue: totalRevenueValue,
-          growth: growthPercentage,
-          usersCount: totalUsers
-      });
+    res.status(200).json({
+      totalProducts,
+      revenue: totalRevenueValue,
+      growth: growthPercentage,
+      usersCount: totalUsers
+    });
   } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error fetching product overview" });
+    console.error(error);
+    res.status(500).json({ message: "Error fetching product overview" });
   }
 };
 

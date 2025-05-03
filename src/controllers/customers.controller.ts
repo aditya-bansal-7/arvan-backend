@@ -278,11 +278,6 @@ const getOtpByJwt = async (
     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Invalid JWT");
   }
   
-
- 
-
-
-
   const findOtp = await prisma.otp.findUnique({
     where: {
       userphone:data.userphone,
@@ -498,6 +493,4 @@ export default {
   verfy_otp,
   makeAdmin,
   getCustomer,
-
-
 };

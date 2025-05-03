@@ -50,91 +50,62 @@ const getBesSellers = async (
   res: Response,
   next: NextFunction
 ) => {
-  const limit = parseInt(req.query.limit as string) || 10;
+  const limit = parseInt(req.query.limit as string) || 5;
 
-  // Step 1: Group by variantId (bestsellers)
-  const topProducts = await prisma.orderItem.groupBy({
-    by: ["productVariantId"],
+  const BestProducts = await prisma.orderItem.groupBy({
+    by: ["productId"],
     _sum: {
       quantity: true,
+      priceAtOrder: true,
     },
   });
 
-  // Step 2: Sort by quantity sold
-  const sortedVariants = topProducts
-    .sort((a, b) => (b._sum.quantity || 0) - (a._sum.quantity || 0));
+  // topProducts.map((item) => {
+  //   item.
+  // })
 
-  // Step 3: Fetch variant details including product
-  const topVariants = await prisma.productVariant.findMany({
+  const bestProducts = await prisma.product.findMany({
     where: {
       id: {
-        in: sortedVariants.map((v) => v.productVariantId),
-      },
+        in: BestProducts.map((item) => item.productId),
+      }
     },
     include: {
-      color: {
-        include: {
-          product: {
-            include: { category: true },
-          },
-          assets: { take: 1 },
-        },
-      },
-    },
-  });
-
-  // Step 4: Keep only one variant per product
-  const uniqueProductsMap = new Map();
-  for (const variant of topVariants) {
-    const product = variant.color?.product;
-    if (product && !uniqueProductsMap.has(product.id)) {
-      uniqueProductsMap.set(product.id, variant);
+      assets: true,
+      category: true,
     }
-    if (uniqueProductsMap.size >= limit) break;
-  }
-
-  // Step 5: If not enough unique products, fetch more
-  if (uniqueProductsMap.size < limit) {
-    const existingProductIds = Array.from(uniqueProductsMap.keys());
-
-    const additionalVariants = await prisma.productVariant.findMany({
+  })
+  
+  if (BestProducts.length < limit) {
+    const take = limit - BestProducts.length;
+    const newProducts = await prisma.product.findMany({
       where: {
-        color: {
-          product: {
-            id: { notIn: existingProductIds },
-          },
+        id: {
+          notIn: BestProducts.map((item) => item.productId),
         },
+        status: "PUBLISHED"
       },
-      take: limit - uniqueProductsMap.size,
+      take,
       include: {
-        color: {
-          include: {
-            product: {
-              include: { category: true },
-            },
-            assets: { take: 1 },
-          },
-        },
-      },
-    });
-
-    for (const variant of additionalVariants) {
-      const product = variant.color?.product;
-      if (product && !uniqueProductsMap.has(product.id)) {
-        uniqueProductsMap.set(product.id, variant);
+        assets: true,
+        category: true,
       }
+    });
+    if (newProducts.length > 0) {
+      bestProducts.push(...newProducts);
     }
   }
 
-  // Step 6: Format result
-  const products = Array.from(uniqueProductsMap.values()).map((variant) => ({
-    productid: variant.color?.product?.id || "",
-    img: variant.color.assets[0]?.asset_url || "",
-    name: variant.color?.product?.name || "",
-    price: variant.color?.product?.price || 0,
-    category: variant.color?.product?.category?.name || "",
-    discount: variant.color?.product?.discountPrice || 0,
-  }));
+  const products = bestProducts.map((product) => {
+    return {
+      id: product.id || "",
+      img: product.assets[0].asset_url, 
+      name: product.name, 
+      price: product.price,
+      category: product.category.name, 
+      discount: product.discountPrice,
+    };
+  });
 
   res.status(HttpStatusCodes.OK).json({ success: true, products });
 };

@@ -15,6 +15,7 @@ model Product {
   discountPrice Float?
   material      String
   category_id   String
+  avgRating     Float?
   category      Category     @relation(fields: [category_id], references: [id])
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt

@@ -4,12 +4,6 @@ import HttpStatusCodes from "../common/httpstatuscode.js";
 
 const createreview = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        // Validate user object
-        // if (!req.user) {
-        //     res.status(HttpStatusCodes.UNAUTHORIZED).json({ message: "Unauthorized user" });
-        //     return;
-        // }
-
         const { title, description, rating } = req.body;
         const productIdFromParams = req.params.productId;  
         console.log("productIdFromParams", productIdFromParams);
@@ -26,31 +20,44 @@ const createreview = async (req: Request, res: Response, next: NextFunction): Pr
             return;
         }
 
-        // Ensure product exists before creating the product rating
-        const productExists = await prisma.product.findUnique({
-            where: { id: productIdFromParams }
-        });
+        // Perform product check and create rating in parallel
+        const [productExists, productrating] = await Promise.all([
+            prisma.product.findUnique({
+                where: { id: productIdFromParams }
+            }),
+            prisma.productRating.create({
+                data: {
+                    title,
+                    description,
+                    rating,
+                    productId: productIdFromParams,
+                    userId: req.user.id 
+                }
+            })
+        ]);
 
         if (!productExists) {
             res.status(HttpStatusCodes.NOT_FOUND).json({ message: "Product not found" });
             return;
         }
 
-        // Create testimonial
-        const productrating = await prisma.productRating.create({
-            data: {
-                title,
-                description,
-                rating,
-                productId: productIdFromParams,
-                // userId: req.user.id 
-            }
+        // Calculate and update average rating in parallel with response
+        const updateRating = prisma.productRating.aggregate({
+            where: { productId: productIdFromParams },
+            _avg: { rating: true }
+        }).then(result => {
+            return prisma.product.update({
+                where: { id: productIdFromParams },
+                data: { avgRating: result._avg.rating || 0 }
+            });
         });
 
         res.status(HttpStatusCodes.CREATED).json({
             message: "Testimonial created successfully",
             productrating
         });
+
+        await updateRating;
 
     } catch (error) {
         console.error("Error creating testimonial:", error);
@@ -60,8 +67,6 @@ const createreview = async (req: Request, res: Response, next: NextFunction): Pr
         });
     }
 };
-
-
 
 // const getTestimonialsByProductId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
 //     try {
