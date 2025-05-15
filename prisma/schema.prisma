@@ -140,7 +140,7 @@ enum UserType {
 
 model Otp {
   id        String   @id @default(cuid())
-  otp       String   @unique
+  otp       String 
   userphone String   @unique
   user      User     @relation(fields: [userphone], references: [mobile_no], onDelete: Cascade)
   createdAt DateTime @default(now())
