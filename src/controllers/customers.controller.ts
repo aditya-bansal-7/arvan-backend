@@ -275,11 +275,9 @@ const getOtpByNumber = async (req: Request, res: Response, next: NextFunction) =
     where: { userphone: mobile_no },
   });
 
-  // const otp = generateSecureOTP();
+  const otp = generateSecureOTP();
 
-  const otp = "123456";
-
-  // await sendOtp(otp, mobile_no);
+  await sendOtp(otp, mobile_no);
 
   const jwt = await generateToken({ userphone: mobile_no });
 
